@@ -1,34 +1,39 @@
-
-
-
+// vwLogin.js - Versão corrigida
 async function vwLogin() {
   const form = document.getElementById("formLogin");
-  const formData = new FormData(form);
+  const formData = Object.fromEntries(new FormData(form).entries()); // Convertendo para objeto
 
-  if (!Validar(formData)) {
-    return false;
-  } else {
-    //const passwordCrypto = CryptoJS.MD5(formData.get('Password')).toString();
-    //formData.set('Password', passwordCrypto); 
-
-    resp = await axios.post('login', formData, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-      .catch(error => {        
-        alert('Error:' + error.response.data.msg);
-        // Handle any errors
-        return;
-      });
-
-    console.log("Valor RESP:" + JSON.stringify(resp))  ;
-    if (!resp) {
-      return;
+  // Validação local usando validate.js (CDN)
+  const constraints = {
+    UserName: {
+      presence: { message: " é obrigatório!" },
+      length: { minimum: 1 }
+    },
+    Password: {
+      presence: { message: " é obrigatório!" },
+      length: { minimum: 1 }
     }
-    
+  };
 
-    Cookies.set('isLogged', true, { sameSite: 'strict' });   
-    window.open("/", "_self");
+  const errors = validate(formData, constraints);
+  
+  if (errors) {
+    alert(Object.values(errors)[0]);
+    return false;
+  }
+
+  try {
+    const response = await axios.post('/login', formData, {
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (response.data.status === "ok") {
+      Cookies.set('isLogged', true, { sameSite: 'strict' });
+      window.location.href = "/home";
+    } else {
+      alert('Erro: ' + response.data.msg);
+    }
+  } catch (error) {
+    alert('Erro: ' + (error.response?.data?.msg || error.message));
   }
 }
